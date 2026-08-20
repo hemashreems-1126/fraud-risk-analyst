@@ -1,42 +1,18 @@
 """
-risk_agent.py
---------------
-This is the "cook #2" step -- the actual AI agent.
-
-The scoring step (score_transactions.py) just says "this looks weird"
-using math. It can't explain *why* in plain language, and it can't
-weigh things the way a human analyst would ("this is a huge chunk of
-the account's balance AND it's a transfer out -- that combination is
-what real fraud looks like").
-
-This agent takes ONE flagged transaction at a time, sends its details
-to an AI model (Gemini 2.5 Flash, via Google's free-tier API), and
-asks for:
-  1. A verdict: BLOCK / REVIEW / ALLOW
-  2. A short plain-English explanation of why
-
-This is "agentic" in the sense that it's not just a single fixed
-question-answer -- it's given a role, a specific case to reason about,
-and it has to produce a structured decision, similar to how a real
-risk analyst would triage a queue of flagged transactions.
-
-Requires a free Gemini API key set as an environment variable:
-    Windows PowerShell: $env:GEMINI_API_KEY="your-key-here"
-Get a free key at: aistudio.google.com/apikey (no card required)
-
-Run this after score_transactions.py: python risk_agent.py
+risk_agent.py — now using Groq instead of Gemini (Gemini free tier caps at
+20 requests/day, which is below our 22 flagged transactions and will always fail).
 """
 
 import os
 import time
 import pandas as pd
-from google import genai
+from groq import Groq
 
 INPUT_FILE = "flagged_transactions.csv"
 OUTPUT_FILE = "risk_report.csv"
-MODEL = "gemini-2.5-flash"  # fast, capable, and covered by the free tier
+MODEL = "openai/gpt-oss-120b"
 
-client = genai.Client()  # reads GEMINI_API_KEY from the environment automatically
+client = Groq()  # reads GROQ_API_KEY from the environment automatically
 
 SYSTEM_PROMPT = """You are a payments risk analyst. You review flagged transactions \
 one at a time and decide: BLOCK, REVIEW, or ALLOW.
@@ -72,14 +48,17 @@ Anomaly score from the statistical model: {row['anomaly_score']:.4f} (lower = mo
 def investigate(row: pd.Series) -> dict:
     case = build_case_description(row)
 
-    response = client.models.generate_content(
+    response = client.chat.completions.create(
         model=MODEL,
-        contents=f"{SYSTEM_PROMPT}\n\nReview this transaction:\n\n{case}",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": f"Review this transaction:\n\n{case}"},
+        ],
     )
 
-    reply = response.text.strip()
+    reply = response.choices[0].message.content.strip()
 
-    verdict, reason = "REVIEW", reply  # safe fallback if parsing fails
+    verdict, reason = "REVIEW", reply
     for line in reply.splitlines():
         if line.startswith("VERDICT:"):
             verdict = line.replace("VERDICT:", "").strip()
@@ -90,10 +69,8 @@ def investigate(row: pd.Series) -> dict:
 
 
 if __name__ == "__main__":
-    if not os.environ.get("GEMINI_API_KEY"):
-        raise SystemExit(
-            "Set your API key first: $env:GEMINI_API_KEY='your-key-here'"
-        )
+    if not os.environ.get("GROQ_API_KEY"):
+        raise SystemExit("Set your API key first: $env:GROQ_API_KEY='your-key-here'")
 
     df = pd.read_csv(INPUT_FILE)
     results = []
@@ -102,7 +79,7 @@ if __name__ == "__main__":
         print(f"Investigating transaction step {row['step']}...")
         outcome = investigate(row)
         results.append({**row.to_dict(), **outcome})
-        time.sleep(4)  # stay comfortably under the free tier's per-minute limit
+        time.sleep(2)
 
     out_df = pd.DataFrame(results)
     out_df.to_csv(OUTPUT_FILE, index=False)

@@ -1,0 +1,5 @@
+Test set: 600 transactions (22 actual fraud)
+Flagged: 22 transactions
+Precision: 59%
+Recall: 59%
+False positives: 9

@@ -1,68 +1,51 @@
-"""
-score_transactions.py
-----------------------
-This is the "cook #1" step: it looks at every transaction and scores
-how unusual it is, using an Isolation Forest.
-
-Why Isolation Forest specifically?
-Most transactions are normal. Fraud is rare and *looks different* from
-the crowd. Isolation Forest works by trying to "isolate" each data
-point with random splits -- unusual points get isolated in very few
-splits (they stand out), normal points take many splits (they're
-surrounded by similar points). It doesn't need labeled fraud examples
-to work, which matches real life: you rarely have a clean "this was
-fraud" label for every past transaction.
-
-Run this after generate_data.py: python score_transactions.py
-It writes flagged_transactions.csv -- the transactions the model
-thinks are suspicious, ranked by how suspicious.
-"""
-
 import pandas as pd
 from sklearn.ensemble import IsolationForest
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import precision_score, recall_score, confusion_matrix
 
-INPUT_FILE = "transactions.csv"
-OUTPUT_FILE = "flagged_transactions.csv"
-TOP_N_TO_FLAG = 15  # how many of the most suspicious transactions to send to the AI agent
+def score_transactions():
+    df = pd.read_csv("transactions.csv")
 
+    features = ["amount", "oldbalanceOrg", "newbalanceOrig", "oldbalanceDest", "newbalanceDest"]
+    X = df[features]
+    y = df["isFraud"]
 
-def score(df: pd.DataFrame) -> pd.DataFrame:
-    # Turn the transaction "type" (text) into numbers the model can use
-    df = df.copy()
-    df["type_encoded"] = df["type"].astype("category").cat.codes
-
-    features = [
-        "amount",
-        "oldbalanceOrg",
-        "newbalanceOrig",
-        "oldbalanceDest",
-        "newbalanceDest",
-        "type_encoded",
-    ]
-
-    model = IsolationForest(
-        n_estimators=200,
-        contamination=0.05,  # our rough guess at what % of data is anomalous
-        random_state=42,
+    # Split — model never sees test labels during training
+    X_train, X_test, y_train, y_test, df_train, df_test = train_test_split(
+        X, y, df, test_size=0.3, random_state=42, stratify=y
     )
-    model.fit(df[features])
 
-    # decision_function: higher = more normal, lower = more unusual
-    df["anomaly_score"] = model.decision_function(df[features])
-    # predict: -1 means "flagged as anomaly", 1 means "normal"
-    df["flagged"] = model.predict(df[features]) == -1
+    model = IsolationForest(contamination=0.03, random_state=42)
+    model.fit(X_train)
 
-    return df
+    # -1 = anomaly, 1 = normal → convert to 1 = flagged fraud, 0 = not
+    raw_preds = model.predict(X_test)
+    df_test = df_test.copy()
+    df_test["flagged"] = (raw_preds == -1).astype(int)
+    df_test["anomaly_score"] = model.decision_function(X_test)
 
+    precision = precision_score(y_test, df_test["flagged"])
+    recall = recall_score(y_test, df_test["flagged"])
+    tn, fp, fn, tp = confusion_matrix(y_test, df_test["flagged"]).ravel()
+
+    print(f"Test set: {len(df_test)} transactions ({y_test.sum()} actual fraud)")
+    print(f"Flagged: {df_test['flagged'].sum()} transactions")
+    print(f"Precision: {precision:.0%} ({tp} of {df_test['flagged'].sum()} flagged were real fraud)")
+    print(f"Recall: {recall:.0%} (caught {tp} of {y_test.sum()} actual fraud cases)")
+    print(f"False positives: {fp} — each means a legitimate customer's transaction gets held for review")
+
+    # Save the metrics summary for your README/video
+    with open("metrics_summary.txt", "w") as f:
+        f.write(f"Test set: {len(df_test)} transactions ({y_test.sum()} actual fraud)\n")
+        f.write(f"Flagged: {df_test['flagged'].sum()} transactions\n")
+        f.write(f"Precision: {precision:.0%}\n")
+        f.write(f"Recall: {recall:.0%}\n")
+        f.write(f"False positives: {fp}\n")
+
+    # Save flagged transactions (the ones your agent will explain) as before
+    flagged_df = df_test[df_test["flagged"] == 1].sort_values("anomaly_score")
+    flagged_df.to_csv("flagged_transactions.csv", index=False)
+    return flagged_df
 
 if __name__ == "__main__":
-    df = pd.read_csv(INPUT_FILE)
-    scored = score(df)
-
-    flagged = scored[scored["flagged"]].sort_values("anomaly_score").head(TOP_N_TO_FLAG)
-
-    print(f"Scored {len(scored)} transactions.")
-    print(f"Flagged {scored['flagged'].sum()} as anomalies.")
-    print(f"Sending the top {len(flagged)} most suspicious to the AI risk agent.")
-
-    flagged.to_csv(OUTPUT_FILE, index=False)
+    score_transactions()
