@@ -81,4 +81,4 @@ for _, row in filtered.iterrows():
             st.caption(f"Anomaly score: {row['anomaly_score']:.4f} · Actual fraud: {'Yes' if row['isFraud'] == 1 else 'No'}")
 
 st.divider()
-st.caption("Built for the Razorpay AI Buildathon — AI Risk Manager track.")
+st.caption("— AI Risk Manager track.")
