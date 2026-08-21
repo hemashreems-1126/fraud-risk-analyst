@@ -19,7 +19,7 @@ import pandas as pd
 
 np.random.seed(42)  # same "random" data every time we run this -> reproducible
 
-N_TRANSACTIONS = 2000
+N_TRANSACTIONS = 8000
 FRAUD_RATE = 0.03  # ~3% of transactions will be fraudulent
 
 TRANSACTION_TYPES = ["PAYMENT", "TRANSFER", "CASH_OUT", "DEBIT", "CASH_IN"]
