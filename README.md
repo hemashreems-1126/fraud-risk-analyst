@@ -6,8 +6,6 @@ An AI agent that reviews payment transactions flagged as suspicious and explains
 
 Payment platforms process huge volumes of transactions. Simple statistical checks can flag something as "unusual," but a flag alone isn't a decision — someone still has to figure out why it's unusual and what to do about it. This project closes that gap: it takes a flagged transaction and produces a reasoned, explainable verdict, instead of just a number.
 
-## Architecture ![Architecture diagram](architecture.png)
-
 ## Pipeline
 
 1. generate_data.py - creates ~2,000 realistic mobile payment transactions (type, amount, sender/receiver balances before and after), with a small percentage seeded as fraud. Structured like the well-known PaySim dataset, generated locally so the project has no external data dependency.
