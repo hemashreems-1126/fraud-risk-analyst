@@ -11,8 +11,6 @@ Payment platforms process huge volumes of transactions. Simple statistical check
 
 Five stages, each one a separate script: `generate_data.py` creates the synthetic transactions, `score_transactions.py` runs Isolation Forest and splits into train/test, the flagged subset goes to `risk_agent.py` for LLM review, and each case gets a final BLOCK/REVIEW/ALLOW verdict with a plain-English reason.
 
-Five stages, each one a separate script: `generate_data.py` creates the synthetic transactions, `score_transactions.py` runs Isolation Forest and splits into train/test, the flagged subset goes to `risk_agent.py` for LLM review, and each case gets a final BLOCK/REVIEW/ALLOW verdict with a plain-English reason.
-## Pipeline
 
 1. generate_data.py - creates ~2,000 realistic mobile payment transactions (type, amount, sender/receiver balances before and after), with a small percentage seeded as fraud. Structured like the well-known PaySim dataset, generated locally so the project has no external data dependency.
 
