@@ -5,7 +5,13 @@ An AI agent that reviews payment transactions flagged as suspicious and explains
 ## The problem
 
 Payment platforms process huge volumes of transactions. Simple statistical checks can flag something as "unusual," but a flag alone isn't a decision — someone still has to figure out why it's unusual and what to do about it. This project closes that gap: it takes a flagged transaction and produces a reasoned, explainable verdict, instead of just a number.
+## Architecture
 
+![Fraud risk pipeline architecture](fraud_risk_architecture.png)
+
+Five stages, each one a separate script: `generate_data.py` creates the synthetic transactions, `score_transactions.py` runs Isolation Forest and splits into train/test, the flagged subset goes to `risk_agent.py` for LLM review, and each case gets a final BLOCK/REVIEW/ALLOW verdict with a plain-English reason.
+
+Five stages, each one a separate script: `generate_data.py` creates the synthetic transactions, `score_transactions.py` runs Isolation Forest and splits into train/test, the flagged subset goes to `risk_agent.py` for LLM review, and each case gets a final BLOCK/REVIEW/ALLOW verdict with a plain-English reason.
 ## Pipeline
 
 1. generate_data.py - creates ~2,000 realistic mobile payment transactions (type, amount, sender/receiver balances before and after), with a small percentage seeded as fraud. Structured like the well-known PaySim dataset, generated locally so the project has no external data dependency.
