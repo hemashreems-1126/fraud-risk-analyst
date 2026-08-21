@@ -7,6 +7,7 @@ import os
 import time
 import pandas as pd
 from groq import Groq
+import time
 
 INPUT_FILE = "flagged_transactions.csv"
 OUTPUT_FILE = "risk_report.csv"
