@@ -2,8 +2,6 @@
 
 An AI agent that reviews payment transactions flagged as suspicious and explains — in plain English — whether to block, review, or allow them, the way a human risk analyst would.
 
-Built for the Razorpay AI Buildathon (AI Risk Manager track).
-
 ## The problem
 
 Payment platforms process huge volumes of transactions. Simple statistical checks can flag something as "unusual," but a flag alone isn't a decision — someone still has to figure out why it's unusual and what to do about it. This project closes that gap: it takes a flagged transaction and produces a reasoned, explainable verdict, instead of just a number.
@@ -18,6 +16,8 @@ Payment platforms process huge volumes of transactions. Simple statistical check
 
 main.py runs all three steps in order - one command, full pipeline.
 
+ ## Architecture ![Architecture diagram](architecture.png)
+ 
 ## Results (held-out test set)
 
 - Precision: 59% - of everything flagged, 13 of 22 were real fraud
