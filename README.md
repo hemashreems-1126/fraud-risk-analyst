@@ -51,7 +51,8 @@ pip install -r requirements.txt
 $env:GROQ_API_KEY="your-key-here"
 python main.py
 
-Output lands in risk_report.csv. Run streamlit run app.py afterward for the dashboard view.
+Output lands in risk_report.csv. 
+Run streamlit run app.py afterward for the dashboard view.
 
 ## Track
 
